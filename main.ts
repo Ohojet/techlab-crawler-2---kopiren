@@ -1,38 +1,111 @@
+// =====================================================================
+// POINTS OF INTEREST (POI)
+// Elk object in deze lijst levert precies EEN punt op, de eerste keer
+// dat je het bekijkt. Een object kan uit meerdere tegels bestaan:
+// zet dan alle tegels (kolom, rij) in 'tegels'.
+// Het spel is afgelopen als alle POI's bekeken zijn.
+// Wil je een POI weghalen? Verwijder dan het hele blok { ... }.
+// Wil je er een toevoegen? Kopieer een blok en pas kolom/rij aan.
+// =====================================================================
+interface Poi {
+    naam: string
+    uitleg: string
+    tegels: number[][]
+}
+let pois: Poi[] = [
+    // 1 - snijplotter (dungeon.chestClosed)
+    { naam: "Snijplotter", uitleg: "Dit is de snijplotter, hier kun je stickers mee snijden. Goed om te weten: een snijplotter is geen printer!", tegels: [[24, 18], [24, 19]] },
+    // 2 - jas en tas (swamp.swampTile4)
+    { naam: "Jas en tas", uitleg: "Hier mag je je jas en tas neerleggen, goedzo!", tegels: [[18, 6], [19, 6], [20, 6]] },
+    // 3 t/m 19 - swamp.swampTile9, nog te benoemen
+    { naam: "POI 3", uitleg: "Nog geen beschrijving (kolom 30, rij 5).", tegels: [[30, 5]] },
+    { naam: "POI 4", uitleg: "Nog geen beschrijving (kolom 33, rij 6).", tegels: [[33, 6]] },
+    { naam: "POI 5", uitleg: "Nog geen beschrijving (kolom 35, rij 6).", tegels: [[35, 6]] },
+    { naam: "POI 6", uitleg: "Nog geen beschrijving (kolom 37, rij 7).", tegels: [[37, 7]] },
+    { naam: "POI 7", uitleg: "Nog geen beschrijving (kolom 32, rij 8-9).", tegels: [[32, 8], [32, 9]] },
+    { naam: "POI 8", uitleg: "Nog geen beschrijving (kolom 0, rij 10-13).", tegels: [[0, 10], [0, 11], [0, 12], [0, 13]] },
+    { naam: "POI 9", uitleg: "Nog geen beschrijving (kolom 38, rij 10).", tegels: [[38, 10]] },
+    { naam: "POI 10", uitleg: "Nog geen beschrijving (kolom 36, rij 12).", tegels: [[36, 12]] },
+    { naam: "POI 11", uitleg: "Nog geen beschrijving (kolom 35, rij 13).", tegels: [[35, 13]] },
+    { naam: "POI 12", uitleg: "Nog geen beschrijving (kolom 1, rij 14).", tegels: [[1, 14]] },
+    { naam: "POI 13", uitleg: "Nog geen beschrijving (kolom 38, rij 15).", tegels: [[38, 15]] },
+    { naam: "POI 14", uitleg: "Nog geen beschrijving (kolom 0, rij 18-19).", tegels: [[0, 18], [0, 19]] },
+    { naam: "POI 15", uitleg: "Nog geen beschrijving (kolom 3-4, rij 18).", tegels: [[3, 18], [4, 18]] },
+    { naam: "POI 16", uitleg: "Nog geen beschrijving (kolom 11-12, rij 18).", tegels: [[11, 18], [12, 18]] },
+    { naam: "POI 17", uitleg: "Nog geen beschrijving (kolom 38, rij 18).", tegels: [[38, 18]] },
+    { naam: "POI 18", uitleg: "Nog geen beschrijving (kolom 32-33, rij 19).", tegels: [[32, 19], [33, 19]] },
+    { naam: "POI 19", uitleg: "Nog geen beschrijving (kolom 36, rij 19).", tegels: [[36, 19]] }
+]
+// bekeken[i] wordt true zodra POI i zijn punt heeft gegeven
+let bekeken: boolean[] = []
+for (let i = 0; i < pois.length; i++) {
+    bekeken.push(false)
+}
+let aantal_bekeken = 0
+
+// Geeft het nummer van de POI op deze tegel, of -1 als er geen POI is
+function zoek_poi (kolom: number, rij: number) {
+    for (let i = 0; i < pois.length; i++) {
+        for (let tegel of pois[i].tegels) {
+            if (tegel[0] == kolom && tegel[1] == rij) {
+                return i
+            }
+        }
+    }
+    return -1
+}
+function bekijk_poi (i: number) {
+    let poi = pois[i]
+    if (bekeken[i]) {
+        // Al bekeken: wel de uitleg, geen punt meer
+        game.showLongText(poi.uitleg + " (Dit heb je al bekeken.)", DialogLayout.Bottom)
+        return
+    }
+    bekeken[i] = true
+    aantal_bekeken += 1
+    info.changeScoreBy(1)
+    music.play(music.melodyPlayable(music.baDing), music.PlaybackMode.InBackground)
+    game.showLongText(poi.uitleg, DialogLayout.Bottom)
+    // Visuele feedback: een kist gaat open
+    for (let tegel of poi.tegels) {
+        let plek = tiles.getTileLocation(tegel[0], tegel[1])
+        if (tiles.tileAtLocationEquals(plek, sprites.dungeon.chestClosed)) {
+            tiles.setTileAt(plek, sprites.dungeon.chestOpen)
+        }
+    }
+    let nog_te_gaan = pois.length - aantal_bekeken
+    if (nog_te_gaan > 0) {
+        Character.sayText("+1! Nog " + nog_te_gaan + " te ontdekken", 2000, false)
+    } else {
+        einde_spel()
+    }
+}
+function einde_spel () {
+    music.play(music.melodyPlayable(music.powerUp), music.PlaybackMode.InBackground)
+    game.showLongText("Gefeliciteerd! Je hebt alles in het TECHLAB bekeken!", DialogLayout.Bottom)
+    game.showLongText("Je kent het lokaal nu. Tot snel in de les!", DialogLayout.Bottom)
+    game.over(true)
+}
+// Teksten voor plekken die GEEN punt opleveren
 function target_tile_collection () {
-    if (tiles.tileAtLocationEquals(target_tile, sprites.dungeon.chestClosed)) {
-        game.showLongText("Dit is de snijplotter, hier kun je stickers mee snijden. Goed om te weten: een snijplotter is geen printer!", DialogLayout.Bottom)
-        // Maak de kist open (visuele feedback)
-        tiles.setTileAt(target_tile, sprites.dungeon.chestClosed)
-        info.changeScoreBy(1)
-    } else if (tiles.tileAtLocationEquals(target_tile, sprites.swamp.swampTile0)) {
+    if (tiles.tileAtLocationEquals(target_tile, sprites.swamp.swampTile0)) {
         game.showLongText("Verkeerde deur! Graag via de andere deur het lokaal in gaan.", DialogLayout.Bottom)
-        // Maak de kist open (visuele feedback)
-        tiles.setTileAt(target_tile, sprites.swamp.swampTile0)
     } else if (tiles.tileAtLocationEquals(target_tile, sprites.builtin.forestTiles4)) {
         game.showLongText("Tijdens de les niet naar de wc.", DialogLayout.Bottom)
-        // Maak de kist open (visuele feedback)
-        tiles.setTileAt(target_tile, sprites.builtin.forestTiles4)
     } else if (tiles.tileAtLocationEquals(target_tile, sprites.builtin.forestTiles8)) {
         game.showLongText("Uh, dat is een meterkast, je mag ook het lokaal in gaan hoor.", DialogLayout.Bottom)
-        // Maak de kist open (visuele feedback)
-        tiles.setTileAt(target_tile, sprites.builtin.forestTiles8)
     } else if (tiles.tileAtLocationEquals(target_tile, sprites.builtin.forestTiles17)) {
         game.showLongText("Dat is het 'oude' technieklokaal. Daar hebben we ook wel eens les met de onderbouw. Het is een magische plek waar linialen verdwijnen.", DialogLayout.Bottom)
-        // Maak de kist open (visuele feedback)
-        tiles.setTileAt(target_tile, sprites.builtin.forestTiles17)
-    } else if (tiles.tileAtLocationEquals(target_tile, sprites.swamp.swampTile4)) {
-        game.showLongText("Hier mag je je jas en tas neerleggen, goedzo!", DialogLayout.Bottom)
-        // Maak de kist open (visuele feedback)
-        tiles.setTileAt(target_tile, sprites.swamp.swampTile4)
-        info.changeScoreBy(1)
-    } else {
-    	
     }
 }
 // 2. De Interactie (A-knop)
 controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
-    // Speel een geluidje
-    music.play(music.createSoundEffect(WaveShape.Triangle, 2699, 3226, 255, 0, 100, SoundExpressionEffect.None, InterpolationCurve.Linear), music.PlaybackMode.UntilDone)
+    // Nog in het intro, of halverwege een stap: niets doen
+    if (!(Character) || is_moving) {
+        return
+    }
+    // Speel een geluidje (niet wachten, zodat de tekst meteen komt)
+    music.play(music.createSoundEffect(WaveShape.Triangle, 2699, 3226, 255, 0, 100, SoundExpressionEffect.None, InterpolationCurve.Linear), music.PlaybackMode.InBackground)
     // Bereken waar de SPELER nu staat
     doel_rij = Math.floor(Character.y / 16)
     doel_kolom = Math.floor(Character.x / 16)
@@ -44,14 +117,15 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
     } else if (facing_direction == "left") {
         doel_kolom += -1
     } else if (facing_direction == "right") {
-        // CORRECTIE: Links is -1 (X wordt kleiner)
         doel_kolom += 1
     }
-    // CORRECTIE: Rechts is +1 (X wordt groter)
-    // Check de tegel
-    // Zorg dat 'sprites.dungeon.chest_closed' overeenkomt met de tegel in jouw editor!
-    target_tile = tiles.getTileLocation(doel_kolom, doel_rij)
-    target_tile_collection()
+    let poi_nummer = zoek_poi(doel_kolom, doel_rij)
+    if (poi_nummer >= 0) {
+        bekijk_poi(poi_nummer)
+    } else {
+        target_tile = tiles.getTileLocation(doel_kolom, doel_rij)
+        target_tile_collection()
+    }
 })
 // 3. Beweging Functie
 function move_character (vx: number, vy: number, direction: string) {
@@ -601,7 +675,6 @@ scene.setBackgroundImage(img`
     9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999
     9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999
     `)
-Character.setStayInScreen(true)
 Character.setPosition(24, 24)
 info.setScore(0)
 forever(function () {
